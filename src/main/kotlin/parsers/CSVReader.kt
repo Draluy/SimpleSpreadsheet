@@ -1,21 +1,27 @@
-import parsers.CSVReader
-import parsers.ExcelReader
+package parsers
+
+import ISSReader
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVRecord
+import java.io.FileReader
+import java.io.Reader
 import java.nio.file.Path
 
-
-class SSReader(val path: Path) : ISSReader {
+class CSVReader(val path: Path) : ISSReader {
 
     override fun readToArray(): Array<Array<String>> {
-        val fileType: FileType = FileType.guess(path)
+        val inReader: Reader = FileReader(path.toFile())
+        val records: Iterable<CSVRecord> = CSVFormat.DEFAULT.parse(inReader)
 
-        return when(fileType) {
-            FileType.XLS, FileType.XLSX -> ExcelReader(path).readToArray()
-            FileType.CSV -> CSVReader(path).readToArray()
+        val result = mutableListOf<Array<String>>()
+        for (record in records) {
+            val rowResult  = mutableListOf<String>()
+            for (cell in record) {
+                rowResult.add(cell)
+            }
+            result.add(rowResult.toTypedArray())
         }
-
-
-
-        return arrayOf()
+        return result.toTypedArray()
     }
 
     override fun readToArray(spreadsheet: String): Array<Array<String>> {
