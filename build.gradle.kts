@@ -4,10 +4,11 @@ plugins {
     kotlin("jvm") version "1.6.21"
     `maven-publish`
     signing
+    application
 }
 
 group = "fr.raluy.simplespreadsheet"
-version = "1.0-SNAPSHOT"
+version = "1.0"
 
 
 java {
@@ -25,8 +26,9 @@ dependencies {
     implementation("org.apache.poi:poi:$apachePoiVersion")
     implementation("org.apache.poi:poi-ooxml:$apachePoiVersion")
     implementation("org.apache.commons:commons-csv:1.9.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
 
-    testImplementation("org.assertj:assertj-core:3.11.1")
+    testImplementation("org.assertj:assertj-core:3.23.1")
     testImplementation(kotlin("test"))
 }
 
@@ -82,7 +84,6 @@ publishing {
             }
         }
     }
-
 
 }
 

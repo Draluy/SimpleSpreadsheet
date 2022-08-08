@@ -1,27 +1,28 @@
-package parsers
+package fr.raluy.simplespreadsheet.priv
 
-import ISSReader
+import fr.raluy.simplespreadsheet.reader.ISSReader
 import org.apache.poi.ss.usermodel.*
 import java.nio.file.Path
+import kotlin.reflect.KClass
 
-class ExcelReader(val path: Path) : ISSReader {
+class ExcelReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
 
-    override fun readToArray(): Array<Array<String>> {
+    override fun readToArray(): Array<Array<String?>> {
         val workbook = WorkbookFactory.create(path.toFile())
         return readToArray(workbook.getSheetAt(0))
     }
 
-    override fun readToArray(spreadsheet: String): Array<Array<String>> {
+    override fun readToArray(spreadsheet: String): Array<Array<String?>> {
         val workbook = WorkbookFactory.create(path.toFile())
         return readToArray(workbook.getSheet(spreadsheet))
     }
 
-    fun readToArray(spreadsheet: Sheet): Array<Array<String>> {
+    fun readToArray(spreadsheet: Sheet): Array<Array<String?>> {
         val formatter = DataFormatter()
-        val result  = mutableListOf<Array<String>>()
+        val result = mutableListOf<Array<String?>>()
         for (row: Row in spreadsheet) {
 
-            val rowResult : MutableList<String> = mutableListOf()
+            val rowResult: MutableList<String> = mutableListOf()
             for (cell: Cell in row) {
                 val text: String = formatter.formatCellValue(cell)
                 rowResult.add(text);
@@ -31,19 +32,19 @@ class ExcelReader(val path: Path) : ISSReader {
         return result.toTypedArray()
     }
 
-    override fun readToCollection(): Collection<Collection<String>> {
+    override fun readToCollection(): List<List<String>> {
         TODO("Not yet implemented")
     }
 
-    override fun readToCollection(spreadsheet: String): Collection<Collection<String>> {
+    override fun readToCollection(spreadsheet: String): List<List<String>> {
         TODO("Not yet implemented")
     }
 
-    override fun <T> readToObjects(): Collection<T> {
+    override fun <T : Any> readToObjects(kClass: KClass<T>): List<T> {
         TODO("Not yet implemented")
     }
 
-    override fun <T> readToObjects(spreadsheet: String): Collection<T> {
+    override fun <T : Any> readToObjects(spreadsheet: String, kClass: KClass<T>): List<T> {
         TODO("Not yet implemented")
     }
 
