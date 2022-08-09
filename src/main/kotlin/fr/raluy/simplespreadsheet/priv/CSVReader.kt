@@ -1,10 +1,7 @@
 package fr.raluy.simplespreadsheet.priv
 
 import fr.raluy.simplespreadsheet.reader.ISSReader
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVRecord
-import java.io.FileReader
-import java.io.Reader
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.reflect.KClass
 
@@ -15,22 +12,41 @@ class CSVReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
         const val CSV_ERR_SHEET_PROVIDED = "This is a CSV file, there are no sheets to chose from."
     }
 
-    override fun readToArray(): Array<Array<String?>> {
-        val inReader: Reader = FileReader(path.toFile())
-        val records: Iterable<CSVRecord> = CSVFormat.DEFAULT.parse(inReader)
+    private fun readDataToStream() = sequence {
+        Files.newBufferedReader(path).use { reader ->
+            com.opencsv.CSVReader(reader).use { csvReader ->
+                var line: Array<String?>?
+                while (csvReader.readNext().also { line = it } != null) {
+                    if (skipHeaders) {
+                        skipHeaders = false
+                        continue;
+                    }
 
-        val result = mutableListOf<Array<String?>>()
-        for (record in records) {
-            if (skipHeaders) {
-                skipHeaders = false
-                continue;
+                    if (lineIsEmpty(line)) {
+                        continue
+                    }
+
+                    line?.let {
+                        val trimmedArray = it.map { it2 ->
+                            if (it2!!.isBlank()) null else it2.trim()
+                        }
+                        yield(trimmedArray.toTypedArray())
+                    }
+                }
             }
-            val rowResult = mutableListOf<String?>()
-            for (cell in record) {
-                rowResult.add(if (cell.isEmpty()) null else cell.trim())
-            }
-            result.add(rowResult.toTypedArray())
         }
+    }
+
+    private fun lineIsEmpty(line: Array<String?>?): Boolean {
+        return line != null && line.all { it.isNullOrEmpty() }
+    }
+
+    override fun readToArray(): Array<Array<String?>> {
+        val result = mutableListOf<Array<String?>>()
+        for (line in readDataToStream().asIterable()) {
+            result.add(line)
+        }
+
         return result.toTypedArray()
     }
 
@@ -39,22 +55,12 @@ class CSVReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
     }
 
     override fun readToCollection(): List<List<String?>> {
-        val inReader: Reader = FileReader(path.toFile())
-        val records: Iterable<CSVRecord> = CSVFormat.DEFAULT.parse(inReader)
-
         val result = mutableListOf<List<String?>>()
-        for (record in records) {
-            if (skipHeaders) {
-                skipHeaders = false
-                continue;
-            }
-            val rowResult = mutableListOf<String?>()
-            for (cell in record) {
-                rowResult.add(if (cell.isEmpty()) null else cell.trim())
-            }
-            result.add(rowResult)
+        for (line in readDataToStream().asIterable()) {
+            result.add(listOf(* line))
         }
-        return result.toList()
+
+        return result
     }
 
     override fun readToCollection(spreadsheet: String): List<List<String?>> {
@@ -63,18 +69,12 @@ class CSVReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
 
 
     override fun <T : Any> readToObjects(kClass: KClass<T>): List<T> {
-        val inReader: Reader = FileReader(path.toFile())
-        val records: Iterable<CSVRecord> = CSVFormat.DEFAULT.parse(inReader)
-
         val result = mutableListOf<T>()
-        for (record in records) {
-            if (skipHeaders) {
-                skipHeaders = false
-                continue;
-            }
-            var params: Array<String?> = record.map { if (it.isEmpty()) null else it.trim() }.toTypedArray()
-            result.add(ObjectInstantiator.createObject(kClass, params))
+        for (line in readDataToStream().asIterable()) {
+            val objectCreated = ObjectInstantiator.createObject(kClass, line)
+            result.add(objectCreated)
         }
+
         return result
     }
 

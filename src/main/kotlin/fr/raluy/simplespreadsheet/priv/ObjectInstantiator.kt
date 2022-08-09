@@ -28,7 +28,28 @@ class ObjectInstantiator {
             // trim/add the array of params so that they match the nb of operands of the ctor
             val params = ctorParams.copyOf(constructor.parameters.size)
 
-            return constructor.call(* params)
+            val obj = constructor.call(* params)
+
+            if (constructor.parameters.isEmpty()) {
+                // IF ctor is the default one, fill the params manually
+                setFields(obj, ctorParams)
+            }
+
+            return obj
+        }
+
+        private fun <T : Any> setFields(obj: T, ctorParams: Array<String?>) {
+            val memberProperties =
+                obj.javaClass.declaredFields // USe java fields, to read them in the order of declaration
+            var index = 0
+            memberProperties
+                .forEach {
+                    if (index < ctorParams.size) {
+                        it.trySetAccessible()
+                        it.set(obj, ctorParams[index])
+                    }
+                    index++
+                }
         }
     }
 }
