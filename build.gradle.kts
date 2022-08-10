@@ -4,7 +4,6 @@ plugins {
     kotlin("jvm") version "1.6.21"
     `maven-publish`
     signing
-    application
 }
 
 group = "fr.raluy.simplespreadsheet"
@@ -86,8 +85,6 @@ publishing {
     }
 
 }
-
-
 
 tasks.test {
     useJUnitPlatform()

@@ -57,6 +57,198 @@ internal class SSReaderTest {
 
     }
 
+
+    @Nested
+    @DisplayName("Read Xlsx files")
+    inner class ReadXlsxFiles {
+        @Test
+        fun read1_NoIden() {
+            val path: Path = getResource("/xlsx/1_NoIden.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("가나다"),
+                arrayOf("하천관리과", "서울 재난 체험관 운영", "치수관리"),
+                arrayOf("하천관리과", "하천 위기상황관리시스템 유지관리", "치수총괄"),
+                arrayOf("하천관리과", "하천 예경보시설 신설 및 교체", "치수총괄"),
+                arrayOf("하천관리과", "하천진출입로 차단시설 설치(구로구 도림천)", "치수총괄"),
+                arrayOf("하천관리과", "하천정비사업 시설부대비"),
+                arrayOf("하천관리과", "하천사용료징수포상금", "청계천관리", "123456.0", "abcedfgh"),
+                arrayOf("하천관리과", "하천 편입토지 보상", "청계천관리")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read45430() {
+            val path: Path = getResource("/xlsx/45430.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf()
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read45540() {
+            val path: Path = getResource("/xlsx/45540_classic_Footer.xlsx")
+            val sheetName = "Top Six Functions"
+            val array = SSReader(path).readToArray(sheetName)
+            val collection = SSReader(path).readToCollection(sheetName)
+            val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("The University of Chicago Graduate School of Business"),
+                arrayOf("Employment Statistics:  2005-2006"),
+                arrayOf("Top Six Functions - Intern"),
+                arrayOf("2006-09-11T00:00"),
+                arrayOf("Function", "Percent of Hires", "Number of Hires(1)"),
+                arrayOf("Top Six Functions", "78.1%", "424"),
+                arrayOf("Finance - Investment Banking", "21.7%", "118"),
+                arrayOf("Consulting", "16.4%", "89"),
+                arrayOf("Finance - Investment Management/ Research", "11.8%", "64"),
+                arrayOf("Marketing", "10.1%", "55"),
+                arrayOf("Finance - Company Finance (Analysis/ Treasury)", "9.0%", "49"),
+                arrayOf("Finance - Sales and Trading", "9.0%", "49"),
+                arrayOf("All Others", "21.9%", "119"),
+                arrayOf("Total", "100.0%", "543"),
+                arrayOf("(1)   Eleven students in the Class of 2007 reported having 2 internships; one student had 3 internships.")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read46535() {
+            val path: Path = getResource("/xlsx/46535.xlsx")
+            val sheetName = "Test"
+            val array = SSReader(path).readToArray(sheetName)
+            val collection = SSReader(path).readToCollection(sheetName)
+            val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("ABD", "HKG", "Hong Kong International", "Abadan")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read46536() {
+            val path: Path = getResource("/xlsx/46536.xlsx")
+            val sheetName = "Test"
+            val array = SSReader(path).readToArray(sheetName)
+            val collection = SSReader(path).readToCollection(sheetName)
+            val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("row1", "1", "2", "3", "6"),
+                arrayOf("row2", "4", "5", "6", "15"),
+                arrayOf("row3", "7", "8", "9", "24")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read48703() {
+            val path: Path = getResource("/xlsx/48703.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("Method 1: Works with POI: =SUM(Sheet1!C1,Sheet2!C1,Sheet3!C1,Sheet4!C1)", "20", "2"),
+                arrayOf("Method 2: Doesn't work with POI: =SUM(Sheet1:Sheet4!C1)", "20"),
+                arrayOf("Both methods SUM the C1 cells from all 4 sheets.")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read49928() {
+            val path: Path = getResource("/xlsx/49928.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("£1")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read49966() {
+            val path: Path = getResource("/xlsx/49966.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("1", "2", "3", "3", "3")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read50755() {
+            val path: Path = getResource("/xlsx/50755_workday_formula_example.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("Inflow Date", "Due Date"),
+                arrayOf("2011-02-01T00:00", "2011-02-08T00:00"),
+                arrayOf("2011-02-02T00:00", "2011-02-09T00:00"),
+                arrayOf("2011-02-03T00:00", "2011-02-10T00:00")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read57236() {
+            val path: Path = getResource("/xlsx/57236.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("3E-104"),
+                arrayOf("5E-104"),
+                arrayOf("5E-106")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+
+        @Test
+        fun read57828() {
+            val path: Path = getResource("/xlsx/57828.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLine::class)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("This", "is", "a", "test"),
+                arrayOf("been", "forgotten", "by", "POI"),
+                arrayOf("Lets", "fix", "this", "easy")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLine::class)
+        }
+    }
+
     @Nested
     @DisplayName("Read Xls files")
     inner class ReadXlsFiles {
@@ -284,7 +476,7 @@ internal class SSReaderTest {
             val path: Path = getResource("/xls/27349-vlookupAcrossSheets.xls")
             val array = SSReader(path).readToArray("TEST")
             val collection = SSReader(path).readToCollection("TEST")
-            val objects = SSReader(path).readToObjects("TEST",GenericLine::class)
+            val objects = SSReader(path).readToObjects("TEST", GenericLine::class)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("3"),
