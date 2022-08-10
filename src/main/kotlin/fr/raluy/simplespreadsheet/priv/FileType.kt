@@ -9,7 +9,6 @@ enum class FileType(val mimeTypes: Array<String>) {
         arrayOf(
             "application/excel",
             "application/vnd.ms-excel",
-
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     ),
