@@ -29,8 +29,8 @@ internal class SSReaderTest {
 
             assertThat(array[0][0]).isEqualTo("a")
             assertThat(array[0][1]).isEqualTo("b")
-            assertThat(array[1][0]).isEqualTo("1.0")
-            assertThat(array[1][1]).isEqualTo("2.0")
+            assertThat(array[1][0]).isEqualTo("1")
+            assertThat(array[1][1]).isEqualTo("2")
         }
 
         @Test
@@ -51,7 +51,7 @@ internal class SSReaderTest {
 
             assertThat(array[0][0]).isEqualTo("Quantity")
             assertThat(array[0][1]).isEqualTo("PartNumber")
-            assertThat(array[1][0]).isEqualTo("2.0")
+            assertThat(array[1][0]).isEqualTo("2")
             assertThat(array[1][1]).isEqualTo("x123")
         }
 
@@ -149,9 +149,9 @@ internal class SSReaderTest {
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Base Spend", "0"),
-                arrayOf(null, "Price Up", "- 0", null),
-                arrayOf(null, "Price Down", "- 0", null),
-                arrayOf(null, "Net Price", "- 0", null)
+                arrayOf(null, "Price Up", "- 0"),
+                arrayOf(null, "Price Down", "- 0"),
+                arrayOf(null, "Net Price", "- 0")
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
@@ -211,7 +211,7 @@ internal class SSReaderTest {
             val objects = SSReader(path).readToObjects(GenericLine::class)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
-                arrayOf(null, "0.25", "0.50", "0.75", "1.00", "1.25", null, null, null, null, null, null, null, null, null),
+                arrayOf(null, "0.25", "0.50", "0.75", "1.00", "1.25"),
                 arrayOf("0.25", "12516.00", "20670.00", "26106.00", "29892.00", "32346.00"),
                 arrayOf("0.50", "13386.00", "23370.00", "30840.00", "36552.00", "40572.00"),
                 arrayOf("0.75", "13710.00", "24450.00", "32826.00", "39474.00", "44292.00"),
