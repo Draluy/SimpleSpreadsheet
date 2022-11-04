@@ -19,4 +19,6 @@ interface ISSReader {
      */
     fun <T : Any> readToObjects(kClass: KClass<T>): List<T>
     fun <T : Any> readToObjects(spreadsheet: String, kClass: KClass<T>): List<T>
+    fun <T : Any> readToObjects(jClass: Class<T>): List<T>
+    fun <T : Any> readToObjects(spreadsheet: String, jClass: Class<T>): List<T>
 }

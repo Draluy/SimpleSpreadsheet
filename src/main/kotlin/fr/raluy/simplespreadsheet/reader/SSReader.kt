@@ -61,6 +61,24 @@ class SSReader(val path: Path) : ISSReader {
         }
     }
 
+    override fun <T : Any> readToObjects(jClass: Class<T>): List<T> {
+        val fileType: FileType = FileType.guess(path)
+
+        return when(fileType) {
+            FileType.XLS, FileType.XLSX -> ExcelReader(path, skipHeaders).readToObjects(jClass)
+            FileType.CSV -> CSVReader(path, skipHeaders).readToObjects(jClass)
+        }
+    }
+
+    override fun <T : Any> readToObjects(spreadsheet: String, jClass: Class<T>): List<T> {
+        val fileType: FileType = FileType.guess(path)
+
+        return when(fileType) {
+            FileType.XLS, FileType.XLSX -> ExcelReader(path, skipHeaders).readToObjects(spreadsheet, jClass)
+            FileType.CSV -> CSVReader(path, skipHeaders).readToObjects(spreadsheet, jClass)
+        }
+    }
+
     override fun <T : Any> readToObjects(spreadsheet: String, kClass: KClass<T>): List<T> {
         val fileType: FileType = FileType.guess(path)
 

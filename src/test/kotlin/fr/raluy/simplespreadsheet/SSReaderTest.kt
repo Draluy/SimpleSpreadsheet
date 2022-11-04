@@ -1,7 +1,8 @@
 package fr.raluy.simplespreadsheet
 
 import fr.raluy.simplespreadsheet.priv.CSVReader.Companion.CSV_ERR_SHEET_PROVIDED
-import fr.raluy.simplespreadsheet.priv.ObjectInstantiator
+import fr.raluy.simplespreadsheet.priv.JavaObjectInstantiator
+import fr.raluy.simplespreadsheet.priv.KotlinObjectInstantiator
 import fr.raluy.simplespreadsheet.reader.SSReader
 import fr.raluy.simplespreadsheet.testObjects.*
 import org.assertj.core.api.Assertions.assertThat
@@ -13,6 +14,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 import kotlin.test.fail
 
 internal class SSReaderTest {
@@ -58,15 +60,18 @@ internal class SSReaderTest {
     }
 
 
+
     @Nested
     @DisplayName("Read Xlsx files")
     inner class ReadXlsxFiles {
+
         @Test
         fun read1_NoIden() {
             val path: Path = getResource("/xlsx/1_NoIden.xlsx")
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("가나다"),
@@ -80,6 +85,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -88,10 +94,12 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf()
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -101,6 +109,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray(sheetName)
             val collection = SSReader(path).readToCollection(sheetName)
             val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(sheetName, GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("The University of Chicago Graduate School of Business"),
@@ -121,6 +130,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -130,12 +140,14 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray(sheetName)
             val collection = SSReader(path).readToCollection(sheetName)
             val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("ABD", "HKG", "Hong Kong International", "Abadan")
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -145,6 +157,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray(sheetName)
             val collection = SSReader(path).readToCollection(sheetName)
             val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("row1", "1", "2", "3", "6"),
@@ -153,6 +166,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -161,6 +175,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Method 1: Works with POI: =SUM(Sheet1!C1,Sheet2!C1,Sheet3!C1,Sheet4!C1)", "20", "2"),
@@ -169,6 +184,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -177,12 +193,14 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("£1")
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -191,12 +209,14 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1", "2", "3", "3", "3")
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -205,6 +225,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Inflow Date", "Due Date"),
@@ -214,6 +235,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -222,6 +244,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("3E-104"),
@@ -230,6 +253,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -238,6 +262,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("This", "is", "a", "test"),
@@ -246,6 +271,25 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
+        }
+
+        @Test
+        fun read57828_java() {
+            val path: Path = getResource("/xlsx/57828.xlsx")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("This", "is", "a", "test"),
+                arrayOf("been", "forgotten", "by", "POI"),
+                arrayOf("Lets", "fix", "this", "easy")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLineJava::class.java)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
     }
 
@@ -258,6 +302,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("11", "22", "33"),
@@ -267,6 +312,26 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
+        }
+
+        @Test
+        fun readAddresses_java() {
+            val path: Path = getResource("/xls/3dFormulas.xls")
+            val array = SSReader(path).readToArray()
+            val collection = SSReader(path).readToCollection()
+            val objects = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+
+            val expectedArray: Array<Array<String?>> = arrayOf(
+                arrayOf("11", "22", "33"),
+                arrayOf("11", "22", "33"),
+                arrayOf("S2-A1", "S2-A2"),
+                arrayOf("165")
+            )
+
+            checkResults(array, collection, objects, expectedArray, GenericLineJava::class.java)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -275,12 +340,14 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("2000-01-01T00:00", "2000-01-01T00:00")
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -289,6 +356,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1"),
@@ -296,6 +364,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -323,6 +392,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("A", "A"),
@@ -330,6 +400,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -338,6 +409,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Base Spend", "0"),
@@ -347,6 +419,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -355,6 +428,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Delaware", "100", "155", "5%", "90", "120", "4%", "10", "35", "1%"),
@@ -364,6 +438,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -372,6 +447,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("TITLE", "DN"),
@@ -381,6 +457,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -389,10 +466,12 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf()
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -401,6 +480,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf(null, "0.25", "0.50", "0.75", "1.00", "1.25"),
@@ -427,6 +507,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -435,6 +516,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("สห", "สห"),
@@ -444,6 +526,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -452,6 +535,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1", "2"),
@@ -469,6 +553,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
         @Test
@@ -477,6 +562,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray("TEST")
             val collection = SSReader(path).readToCollection("TEST")
             val objects = SSReader(path).readToObjects("TEST", GenericLine::class)
+            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("3"),
@@ -488,6 +574,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
+            checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
     }
 
@@ -518,6 +605,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(Address::class)
+            val objectsJava = SSReader(path).readToObjects(AddressJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("John", "Doe", "120 jefferson st.", "Riverside", "NJ", "08075"),
@@ -529,6 +617,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, Address::class)
+            checkResults(array, collection, objectsJava, expectedArray, AddressJava::class.java)
         }
 
         @Test
@@ -537,6 +626,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(AirTravel::class)
+            val objectsJava = SSReader(path).readToObjects(AirTravelJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Month", "1958", "1959", "1960"),
@@ -555,6 +645,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, AirTravel::class)
+            checkResults(array, collection, objectsJava, expectedArray, AirTravelJava::class.java)
         }
 
         @Test
@@ -562,7 +653,9 @@ internal class SSReaderTest {
             val path: Path = getResource("/csv/biostats.csv")
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(BioStat::class)
+            val objects = SSReader(path).readToObjects(BioStatJava::class)
+            val objectsJava = SSReader(path).readToObjects(BioStatJava::class.java)
+
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Name", "Sex", "Age", "Height (in)", "Weight (lbs)"),
@@ -586,7 +679,8 @@ internal class SSReaderTest {
                 arrayOf("Ruth", "F", "28", "65", "131"),
             )
 
-            checkResults(array, collection, objects, expectedArray, BioStat::class)
+            checkResults(array, collection, objects, expectedArray, BioStatJava::class)
+            checkResults(array, collection, objectsJava, expectedArray, BioStatJava::class.java)
         }
 
         @Test
@@ -595,6 +689,7 @@ internal class SSReaderTest {
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(City::class)
+            val objectsJava = SSReader(path).readToObjects(CityJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("LatD", "LatM", "LatS", "NS", "LonD", "LonM", "LonS", "EW", "City", "State"),
@@ -729,6 +824,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, City::class)
+            checkResults(array, collection, objectsJava, expectedArray, CityJava::class.java)
         }
 
         @Test
@@ -737,6 +833,7 @@ internal class SSReaderTest {
             val array = SSReader(path).skipHeaders().readToArray()
             val collection = SSReader(path).skipHeaders().readToCollection()
             val objects = SSReader(path).skipHeaders().readToObjects(Faithful::class)
+            val objectsJava = SSReader(path).skipHeaders().readToObjects(FaithfulJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1", "3.600", "79"),
@@ -752,14 +849,16 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, Faithful::class)
+            checkResults(array, collection, objectsJava, expectedArray, FaithfulJava::class.java)
         }
 
         @Test
-        fun readNewsDecline() {
+        fun  readNewsDecline() {
             val path: Path = getResource("/csv/news_decline.csv")
             val array = SSReader(path).readToArray()
             val collection = SSReader(path).readToCollection()
             val objects = SSReader(path).readToObjects(NewsDecline::class)
+            val objectsJava = SSReader(path).readToObjects(NewsDeclineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Show", "2009", "2010", "2011"),
@@ -772,6 +871,7 @@ internal class SSReaderTest {
             )
 
             checkResults(array, collection, objects, expectedArray, NewsDecline::class)
+            checkResults(array, collection, objectsJava, expectedArray, NewsDeclineJava::class.java)
         }
     }
 
@@ -795,16 +895,45 @@ internal class SSReaderTest {
         )
     }
 
+    private fun <T : Any> checkResults(
+        array: Array<Array<String?>>,
+        collection: List<List<String?>>,
+        objects: List<T>,
+        expectedArray: Array<Array<String?>>,
+        jCLass: Class<T>
+    ) {
+        checkArray(
+            array, expectedArray
+        )
+
+        checkCollection(
+            collection, toList(expectedArray)
+        )
+
+        checkObjects(
+            objects, toObjects(expectedArray, jCLass)
+        )
+    }
+
+
     private fun <T : Any> toObjects(expectedArray: Array<Array<String?>>, x: KClass<T>): List<T> {
         return expectedArray.map { arr ->
-            ObjectInstantiator.createObject(x, arr)
+            KotlinObjectInstantiator<T>().createObject(x, arr)
         }
     }
+
+    private fun <T : Any> toObjects(expectedArray: Array<Array<String?>>, x: Class<T>): List<T> {
+        return expectedArray.map { arr ->
+            JavaObjectInstantiator<T>().createObject(x, arr)
+        }
+    }
+
 
     private fun <T : Any> checkObjects(objects: List<T>, toObjects: List<T>) {
         objects.forEach {
             val props = it.javaClass.kotlin.memberProperties
             val nbNullOrEmpty = props.map { prop ->
+                prop.isAccessible = true
                 val value = prop.get(it)
                 if (value == null || (value is String && value.isBlank()))
                     1

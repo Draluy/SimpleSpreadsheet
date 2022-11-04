@@ -71,7 +71,7 @@ class CSVReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
     override fun <T : Any> readToObjects(kClass: KClass<T>): List<T> {
         val result = mutableListOf<T>()
         for (line in readDataToStream().asIterable()) {
-            val objectCreated = ObjectInstantiator.createObject(kClass, line)
+            val objectCreated = KotlinObjectInstantiator<T>().createObject(kClass, line)
             result.add(objectCreated)
         }
 
@@ -79,6 +79,20 @@ class CSVReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
     }
 
     override fun <T : Any> readToObjects(spreadsheet: String, kClass: KClass<T>): List<T> {
+        throw UnsupportedOperationException(CSV_ERR_SHEET_PROVIDED)
+    }
+
+    override fun <T : Any> readToObjects(jClass: Class<T>): List<T> {
+        val result = mutableListOf<T>()
+        for (line in readDataToStream().asIterable()) {
+            val objectCreated = JavaObjectInstantiator<T>().createObject(jClass, line)
+            result.add(objectCreated)
+        }
+
+        return result
+    }
+
+    override fun <T : Any> readToObjects(spreadsheet: String, jClass: Class<T>): List<T> {
         throw UnsupportedOperationException(CSV_ERR_SHEET_PROVIDED)
     }
 }

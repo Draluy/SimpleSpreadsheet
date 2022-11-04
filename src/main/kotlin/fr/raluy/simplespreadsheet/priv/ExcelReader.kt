@@ -7,6 +7,12 @@ import kotlin.reflect.KClass
 
 
 class ExcelReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
+    private val evaluator: FormulaEvaluator
+    private val workbook: Workbook = WorkbookFactory.create(path.toFile())
+
+    init {
+        this.evaluator = workbook.creationHelper.createFormulaEvaluator()
+    }
 
     private fun readDataToStream(sheetAt: Sheet, evaluator: FormulaEvaluator) = sequence {
 
@@ -77,75 +83,56 @@ class ExcelReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
         return line.all { it.isNullOrEmpty() }
     }
 
-    override fun readToArray(): Array<Array<String?>> {
-        val workbook = WorkbookFactory.create(path.toFile())
-        val evaluator: FormulaEvaluator = workbook.creationHelper.createFormulaEvaluator()
+    override fun readToArray(): Array<Array<String?>> = readSheetToArray(workbook.getSheetAt(0))
 
+    override fun readToArray(spreadsheet: String) = readSheetToArray(workbook.getSheet(spreadsheet))
+
+    private fun readSheetToArray(spreadsheet: Sheet): Array<Array<String?>> {
         val result = mutableListOf<Array<String?>>()
-        for (line in readDataToStream(workbook.getSheetAt(0), evaluator).asIterable()) {
+        for (line in readDataToStream(spreadsheet, evaluator).asIterable()) {
             result.add(line)
         }
         return result.toTypedArray()
     }
 
-    override fun readToArray(spreadsheet: String): Array<Array<String?>> {
-        val workbook = WorkbookFactory.create(path.toFile())
-        val evaluator: FormulaEvaluator = workbook.creationHelper.createFormulaEvaluator()
+    override fun readToCollection() = readSheetToCollection(workbook.getSheetAt(0))
 
-        val result = mutableListOf<Array<String?>>()
-        for (line in readDataToStream(workbook.getSheet(spreadsheet), evaluator).asIterable()) {
-            result.add(line)
-        }
-        return result.toTypedArray()
-    }
-
-
-    override fun readToCollection(): List<List<String?>> {
-        val workbook = WorkbookFactory.create(path.toFile())
-        val evaluator: FormulaEvaluator = workbook.creationHelper.createFormulaEvaluator()
-
+    private fun readSheetToCollection(spreadsheet: Sheet): List<List<String?>> {
         val result = mutableListOf<List<String?>>()
-        for (line in readDataToStream(workbook.getSheetAt(0), evaluator).asIterable()) {
+        for (line in readDataToStream(spreadsheet, evaluator).asIterable()) {
             result.add(listOf(* line))
         }
         return result
     }
 
-    override fun readToCollection(spreadsheet: String): List<List<String?>> {
-        val workbook = WorkbookFactory.create(path.toFile())
-        val evaluator: FormulaEvaluator = workbook.creationHelper.createFormulaEvaluator()
+    override fun readToCollection(spreadsheet: String) = readSheetToCollection(workbook.getSheet(spreadsheet))
 
-        val result = mutableListOf<List<String?>>()
-        for (line in readDataToStream(workbook.getSheet(spreadsheet), evaluator).asIterable()) {
-            result.add(listOf(* line))
-        }
-        return result
-    }
+    override fun <T : Any> readToObjects(kClass: KClass<T>) = readSheetToObjects(kClass, workbook.getSheetAt(0))
 
-    override fun <T : Any> readToObjects(kClass: KClass<T>): List<T> {
-        val workbook = WorkbookFactory.create(path.toFile())
-        val evaluator: FormulaEvaluator = workbook.creationHelper.createFormulaEvaluator()
-
+    private fun <T : Any> readSheetToObjects(kClass: KClass<T>, spreadsheet: Sheet): List<T> {
         val result = mutableListOf<T>()
-        for (line in readDataToStream(workbook.getSheetAt(0), evaluator).asIterable()) {
-            val objectCreated = ObjectInstantiator.createObject(kClass, line)
+        for (line in readDataToStream(spreadsheet, evaluator).asIterable()) {
+            val objectCreated = KotlinObjectInstantiator<T>().createObject(kClass, line)
             result.add(objectCreated)
         }
 
         return result
     }
 
-    override fun <T : Any> readToObjects(spreadsheet: String, kClass: KClass<T>): List<T> {
-        val workbook = WorkbookFactory.create(path.toFile())
-        val evaluator: FormulaEvaluator = workbook.creationHelper.createFormulaEvaluator()
+    override fun <T : Any> readToObjects(spreadsheet: String, kClass: KClass<T>) = readSheetToObjects(kClass, workbook.getSheet(spreadsheet))
 
+    override fun <T : Any> readToObjects(jClass: Class<T>) = readSheetToObjects(jClass, workbook.getSheetAt(0))
+
+    private fun <T : Any> readSheetToObjects(jClass: Class<T>, spreadsheet: Sheet): List<T> {
         val result = mutableListOf<T>()
-        for (line in readDataToStream(workbook.getSheet(spreadsheet), evaluator).asIterable()) {
-            val objectCreated = ObjectInstantiator.createObject(kClass, line)
+        for (line in readDataToStream(spreadsheet, evaluator).asIterable()) {
+            val objectCreated = JavaObjectInstantiator<T>().createObject(jClass, line)
             result.add(objectCreated)
         }
 
         return result
     }
+
+    override fun <T : Any> readToObjects(spreadsheet: String, jClass: Class<T>) = readSheetToObjects(jClass, workbook.getSheet(spreadsheet))
 
 }

@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "fr.raluy.simplespreadsheet"
-version = "1.0"
+version = "1.0.0"
 
 
 java {
@@ -28,6 +28,7 @@ dependencies {
     implementation("com.opencsv:opencsv:5.6")
 
     testImplementation("org.assertj:assertj-core:3.23.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.0")
     testImplementation(kotlin("test"))
 }
 
