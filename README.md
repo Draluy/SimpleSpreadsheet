@@ -20,13 +20,13 @@ Maven
 <dependency>
   <groupId>fr.raluy.simplespreadsheet</groupId>
   <artifactId>simplespreadsheet</artifactId>
-  <version>0.0.1</version>
+  <version>1.0.0</version>
 </dependency>
 ```
 
 Gradle
 ```
-implementation("fr.raluy.simplespreadsheet:simplespreadsheet:0.0.1")
+implementation("fr.raluy.simplespreadsheet:simplespreadsheet:1.0.0")
 ```
 
 ### Read the file
