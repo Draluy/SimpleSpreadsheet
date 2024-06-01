@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "fr.raluy.simplespreadsheet"
-version = "1.0.0"
+version = "2.0.0"
 
 
 java {
@@ -26,6 +26,7 @@ dependencies {
     implementation("org.apache.poi:poi-ooxml:$apachePoiVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
     implementation("com.opencsv:opencsv:5.6")
+    implementation("org.apache.tika:tika-core:2.9.2")
 
     testImplementation("org.assertj:assertj-core:3.23.1")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.0")

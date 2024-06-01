@@ -10,8 +10,16 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.stream.Stream
+import kotlin.io.path.inputStream
 import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
@@ -27,7 +35,7 @@ internal class SSReaderTest {
         @Test
         fun readXlsx() {
             val path: Path = getResource("/xlsx/WithTable.xlsx")
-            val array = SSReader(path).readToArray()
+            val array = SSReader(path, "WithTable.xlsx").readToArray()
 
             assertThat(array[0][0]).isEqualTo("a")
             assertThat(array[0][1]).isEqualTo("b")
@@ -38,7 +46,7 @@ internal class SSReaderTest {
         @Test
         fun readCsv() {
             val path: Path = getResource("/csv/addresses.csv")
-            val array = SSReader(path).readToArray()
+            val array = SSReader(path, "addresses.csv").readToArray()
 
             assertThat(array[0][0]).isEqualTo("John")
             assertThat(array[0][1]).isEqualTo("Doe")
@@ -49,7 +57,7 @@ internal class SSReaderTest {
         @Test
         fun readExcel() {
             val path: Path = getResource("/xls/XRefCalc.xls")
-            val array = SSReader(path).readToArray()
+            val array = SSReader(path, "XRefCalc.xls").readToArray()
 
             assertThat(array[0][0]).isEqualTo("Quantity")
             assertThat(array[0][1]).isEqualTo("PartNumber")
@@ -59,19 +67,49 @@ internal class SSReaderTest {
 
     }
 
-
-
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     @Nested
     @DisplayName("Read Xlsx files")
     inner class ReadXlsxFiles {
 
-        @Test
-        fun read1_NoIden() {
-            val path: Path = getResource("/xlsx/1_NoIden.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+        private fun getTestStreamArgs(s: String): Stream<Arguments> {
+            val resource = getResource(s)
+            val baos = ByteArrayOutputStream()
+            resource.inputStream().transferTo(baos)
+            val toByteArray = baos.toByteArray()
+            return Stream.of(
+                Arguments.of(resource),
+                Arguments.of(ByteArrayInputStream(toByteArray)),
+                Arguments.of(toByteArray)
+            );
+        }
+
+        private fun getReader(file: Any, fileName: String): () -> SSReader {
+            val reader = {
+                when (file) {
+                    is Path -> SSReader(file, fileName)
+                    is ByteArrayInputStream -> {
+                        file.reset(); SSReader(file, fileName)
+                    }
+
+                    is ByteArray -> SSReader(file, fileName)
+                    else -> throw RuntimeException("argh")
+                }
+            }
+            return reader
+        }
+
+        private fun read1_NoIden(): Stream<Arguments> = getTestStreamArgs("/xlsx/1_NoIden.xlsx")
+
+        @ParameterizedTest
+        @MethodSource()
+        fun read1_NoIden(file: Any) {
+            val reader = getReader(file, "1_NoIden.xlsx")
+
+            val array = reader().readToArray()
+            val collection = reader().readToCollection()
+            val objects = reader().readToObjects(GenericLine::class)
+            val objectsJava = reader().readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("가나다"),
@@ -88,28 +126,33 @@ internal class SSReaderTest {
             checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
-        @Test
-        fun read45430() {
-            val path: Path = getResource("/xlsx/45430.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+        private fun read45430(): Stream<Arguments> = getTestStreamArgs("/xlsx/45430.xlsx")
 
+        @ParameterizedTest
+        @MethodSource()
+        fun read45430(file: Any) {
+            val reader = getReader(file, "45430.xlsx")
+            val array = reader().readToArray()
+            val collection = reader().readToCollection()
+            val objects = reader().readToObjects(GenericLine::class)
+            val objectsJava = reader().readToObjects(GenericLineJava::class.java)
             val expectedArray: Array<Array<String?>> = arrayOf()
 
             checkResults(array, collection, objects, expectedArray, GenericLine::class)
             checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
-        @Test
-        fun read45540() {
-            val path: Path = getResource("/xlsx/45540_classic_Footer.xlsx")
+        private fun read45540(): Stream<Arguments> = getTestStreamArgs("/xlsx/45540_classic_Footer.xlsx")
+
+        @ParameterizedTest
+        @MethodSource()
+        fun read45540(file: Any) {
+            val reader = getReader(file, "45540_classic_Footer.xlsx")
             val sheetName = "Top Six Functions"
-            val array = SSReader(path).readToArray(sheetName)
-            val collection = SSReader(path).readToCollection(sheetName)
-            val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(sheetName, GenericLineJava::class.java)
+            val array = reader().readToArray(sheetName)
+            val collection = reader().readToCollection(sheetName)
+            val objects = reader().readToObjects(sheetName, GenericLine::class)
+            val objectsJava = reader().readToObjects(sheetName, GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("The University of Chicago Graduate School of Business"),
@@ -133,14 +176,17 @@ internal class SSReaderTest {
             checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
-        @Test
-        fun read46535() {
-            val path: Path = getResource("/xlsx/46535.xlsx")
+        private fun read46535(): Stream<Arguments> = getTestStreamArgs("/xlsx/46535.xlsx")
+
+        @ParameterizedTest
+        @MethodSource()
+        fun read46535(file: Any) {
+            val reader = getReader(file, "46535.xlsx")
             val sheetName = "Test"
-            val array = SSReader(path).readToArray(sheetName)
-            val collection = SSReader(path).readToCollection(sheetName)
-            val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = reader().readToArray(sheetName)
+            val collection = reader().readToCollection(sheetName)
+            val objects = reader().readToObjects(sheetName, GenericLine::class)
+            val objectsJava = reader().readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("ABD", "HKG", "Hong Kong International", "Abadan")
@@ -150,14 +196,18 @@ internal class SSReaderTest {
             checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
 
-        @Test
-        fun read46536() {
+        private fun read46536(): Stream<Arguments> = getTestStreamArgs("/xlsx/46536.xlsx")
+
+        @ParameterizedTest
+        @MethodSource()
+        fun read46536(file: Any) {
+            val reader = getReader(file, "46535.xlsx")
             val path: Path = getResource("/xlsx/46536.xlsx")
             val sheetName = "Test"
-            val array = SSReader(path).readToArray(sheetName)
-            val collection = SSReader(path).readToCollection(sheetName)
-            val objects = SSReader(path).readToObjects(sheetName, GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = reader().readToArray(sheetName)
+            val collection = reader().readToCollection(sheetName)
+            val objects = reader().readToObjects(sheetName, GenericLine::class)
+            val objectsJava = reader().readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("row1", "1", "2", "3", "6"),
@@ -172,10 +222,10 @@ internal class SSReaderTest {
         @Test
         fun read48703() {
             val path: Path = getResource("/xlsx/48703.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Method 1: Works with POI: =SUM(Sheet1!C1,Sheet2!C1,Sheet3!C1,Sheet4!C1)", "20", "2"),
@@ -190,10 +240,10 @@ internal class SSReaderTest {
         @Test
         fun read49928() {
             val path: Path = getResource("/xlsx/49928.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("£1")
@@ -206,10 +256,10 @@ internal class SSReaderTest {
         @Test
         fun read49966() {
             val path: Path = getResource("/xlsx/49966.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1", "2", "3", "3", "3")
@@ -222,10 +272,10 @@ internal class SSReaderTest {
         @Test
         fun read50755() {
             val path: Path = getResource("/xlsx/50755_workday_formula_example.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Inflow Date", "Due Date"),
@@ -241,10 +291,10 @@ internal class SSReaderTest {
         @Test
         fun read57236() {
             val path: Path = getResource("/xlsx/57236.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("3E-104"),
@@ -259,10 +309,10 @@ internal class SSReaderTest {
         @Test
         fun read57828() {
             val path: Path = getResource("/xlsx/57828.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("This", "is", "a", "test"),
@@ -277,10 +327,10 @@ internal class SSReaderTest {
         @Test
         fun read57828_java() {
             val path: Path = getResource("/xlsx/57828.xlsx")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLineJava::class.java)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLineJava::class.java)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("This", "is", "a", "test"),
@@ -291,6 +341,7 @@ internal class SSReaderTest {
             checkResults(array, collection, objects, expectedArray, GenericLineJava::class.java)
             checkResults(array, collection, objectsJava, expectedArray, GenericLineJava::class.java)
         }
+
     }
 
     @Nested
@@ -299,10 +350,10 @@ internal class SSReaderTest {
         @Test
         fun readAddresses() {
             val path: Path = getResource("/xls/3dFormulas.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("11", "22", "33"),
@@ -318,10 +369,10 @@ internal class SSReaderTest {
         @Test
         fun readAddresses_java() {
             val path: Path = getResource("/xls/3dFormulas.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLineJava::class.java)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLineJava::class.java)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("11", "22", "33"),
@@ -337,10 +388,10 @@ internal class SSReaderTest {
         @Test
         fun read1900DateWindowing() {
             val path: Path = getResource("/xls/1900DateWindowing.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("2000-01-01T00:00", "2000-01-01T00:00")
@@ -353,10 +404,10 @@ internal class SSReaderTest {
         @Test
         fun read13224() {
             val path: Path = getResource("/xls/13224.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1"),
@@ -373,15 +424,15 @@ internal class SSReaderTest {
             val path: Path = getResource("/xls/13796.xls")
             val errMsg = "Could not resolve external workbook name"
             assertThatThrownBy {
-                SSReader(path).readToArray("Sheet1")
+                SSReader(path, "").readToArray("Sheet1")
             }.isInstanceOf(RuntimeException::class.java)
                 .hasMessageContaining(errMsg)
             assertThatThrownBy {
-                SSReader(path).readToCollection("Sheet1")
+                SSReader(path, "").readToCollection("Sheet1")
             }.isInstanceOf(RuntimeException::class.java)
                 .hasMessageContaining(errMsg)
             assertThatThrownBy {
-                SSReader(path).readToObjects("Sheet1", Address::class)
+                SSReader(path, "").readToObjects("Sheet1", Address::class)
             }.isInstanceOf(RuntimeException::class.java)
                 .hasMessageContaining(errMsg)
         }
@@ -389,10 +440,10 @@ internal class SSReaderTest {
         @Test
         fun read143302() {
             val path: Path = getResource("/xls/14330-2.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("A", "A"),
@@ -406,10 +457,10 @@ internal class SSReaderTest {
         @Test
         fun read14460() {
             val path: Path = getResource("/xls/14460.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Base Spend", "0"),
@@ -425,10 +476,10 @@ internal class SSReaderTest {
         @Test
         fun read153375() {
             val path: Path = getResource("/xls/15375.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Delaware", "100", "155", "5%", "90", "120", "4%", "10", "35", "1%"),
@@ -444,10 +495,10 @@ internal class SSReaderTest {
         @Test
         fun read15573() {
             val path: Path = getResource("/xls/15573.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("TITLE", "DN"),
@@ -463,10 +514,10 @@ internal class SSReaderTest {
         @Test
         fun read24207() {
             val path: Path = getResource("/xls/24207.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf()
 
@@ -477,10 +528,10 @@ internal class SSReaderTest {
         @Test
         fun read25183() {
             val path: Path = getResource("/xls/25183.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf(null, "0.25", "0.50", "0.75", "1.00", "1.25"),
@@ -513,10 +564,10 @@ internal class SSReaderTest {
         @Test
         fun read25695() {
             val path: Path = getResource("/xls/25695.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("สห", "สห"),
@@ -532,10 +583,10 @@ internal class SSReaderTest {
         @Test
         fun read26100() {
             val path: Path = getResource("/xls/26100.xls")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1", "2"),
@@ -559,10 +610,10 @@ internal class SSReaderTest {
         @Test
         fun read27349() {
             val path: Path = getResource("/xls/27349-vlookupAcrossSheets.xls")
-            val array = SSReader(path).readToArray("TEST")
-            val collection = SSReader(path).readToCollection("TEST")
-            val objects = SSReader(path).readToObjects("TEST", GenericLine::class)
-            val objectsJava = SSReader(path).readToObjects(GenericLineJava::class.java)
+            val array = SSReader(path, "").readToArray("TEST")
+            val collection = SSReader(path, "").readToCollection("TEST")
+            val objects = SSReader(path, "").readToObjects("TEST", GenericLine::class)
+            val objectsJava = SSReader(path, "").readToObjects(GenericLineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("3"),
@@ -586,15 +637,15 @@ internal class SSReaderTest {
         fun checkCsvReadingFailsIfSheetProvided() {
             val path: Path = getResource("/csv/addresses.csv")
             assertThatThrownBy {
-                SSReader(path).readToArray("firstSheet")
+                SSReader(path, "").readToArray("firstSheet")
             }.isInstanceOf(UnsupportedOperationException::class.java)
                 .hasMessageContaining(CSV_ERR_SHEET_PROVIDED)
             assertThatThrownBy {
-                SSReader(path).readToCollection("firstSheet")
+                SSReader(path, "").readToCollection("firstSheet")
             }.isInstanceOf(UnsupportedOperationException::class.java)
                 .hasMessageContaining(CSV_ERR_SHEET_PROVIDED)
             assertThatThrownBy {
-                SSReader(path).readToObjects("firstSheet", Address::class)
+                SSReader(path, "").readToObjects("firstSheet", Address::class)
             }.isInstanceOf(UnsupportedOperationException::class.java)
                 .hasMessageContaining(CSV_ERR_SHEET_PROVIDED)
         }
@@ -602,10 +653,10 @@ internal class SSReaderTest {
         @Test
         fun readAddresses() {
             val path: Path = getResource("/csv/addresses.csv")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(Address::class)
-            val objectsJava = SSReader(path).readToObjects(AddressJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(Address::class)
+            val objectsJava = SSReader(path, "").readToObjects(AddressJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("John", "Doe", "120 jefferson st.", "Riverside", "NJ", "08075"),
@@ -623,10 +674,10 @@ internal class SSReaderTest {
         @Test
         fun readAirTravel() {
             val path: Path = getResource("/csv/airtravel.csv")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(AirTravel::class)
-            val objectsJava = SSReader(path).readToObjects(AirTravelJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(AirTravel::class)
+            val objectsJava = SSReader(path, "").readToObjects(AirTravelJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Month", "1958", "1959", "1960"),
@@ -651,10 +702,10 @@ internal class SSReaderTest {
         @Test
         fun readBioStats() {
             val path: Path = getResource("/csv/biostats.csv")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(BioStatJava::class)
-            val objectsJava = SSReader(path).readToObjects(BioStatJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(BioStatJava::class)
+            val objectsJava = SSReader(path, "").readToObjects(BioStatJava::class.java)
 
 
             val expectedArray: Array<Array<String?>> = arrayOf(
@@ -686,10 +737,10 @@ internal class SSReaderTest {
         @Test
         fun readCities() {
             val path: Path = getResource("/csv/cities.csv")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(City::class)
-            val objectsJava = SSReader(path).readToObjects(CityJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(City::class)
+            val objectsJava = SSReader(path, "").readToObjects(CityJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("LatD", "LatM", "LatS", "NS", "LonD", "LonM", "LonS", "EW", "City", "State"),
@@ -830,10 +881,10 @@ internal class SSReaderTest {
         @Test
         fun readFaithfulWithNoHeader() {
             val path: Path = getResource("/csv/faithful.csv")
-            val array = SSReader(path).skipHeaders().readToArray()
-            val collection = SSReader(path).skipHeaders().readToCollection()
-            val objects = SSReader(path).skipHeaders().readToObjects(Faithful::class)
-            val objectsJava = SSReader(path).skipHeaders().readToObjects(FaithfulJava::class.java)
+            val array = SSReader(path, "").skipHeaders().readToArray()
+            val collection = SSReader(path, "").skipHeaders().readToCollection()
+            val objects = SSReader(path, "").skipHeaders().readToObjects(Faithful::class)
+            val objectsJava = SSReader(path, "").skipHeaders().readToObjects(FaithfulJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("1", "3.600", "79"),
@@ -855,10 +906,10 @@ internal class SSReaderTest {
         @Test
         fun  readNewsDecline() {
             val path: Path = getResource("/csv/news_decline.csv")
-            val array = SSReader(path).readToArray()
-            val collection = SSReader(path).readToCollection()
-            val objects = SSReader(path).readToObjects(NewsDecline::class)
-            val objectsJava = SSReader(path).readToObjects(NewsDeclineJava::class.java)
+            val array = SSReader(path, "").readToArray()
+            val collection = SSReader(path, "").readToCollection()
+            val objects = SSReader(path, "").readToObjects(NewsDecline::class)
+            val objectsJava = SSReader(path, "").readToObjects(NewsDeclineJava::class.java)
 
             val expectedArray: Array<Array<String?>> = arrayOf(
                 arrayOf("Show", "2009", "2010", "2011"),

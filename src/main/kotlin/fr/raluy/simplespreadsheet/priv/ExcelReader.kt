@@ -2,13 +2,20 @@ package fr.raluy.simplespreadsheet.priv
 
 import fr.raluy.simplespreadsheet.reader.ISSReader
 import org.apache.poi.ss.usermodel.*
+import java.io.BufferedInputStream
+import java.io.InputStream
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.reflect.KClass
 
 
-class ExcelReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
+class ExcelReader(private val iStream: InputStream, var skipHeaders: Boolean) : ISSReader {
+
+    constructor(path: Path, skipHeaders: Boolean) : this(BufferedInputStream(Files.newInputStream(path)), skipHeaders)
+
     private val evaluator: FormulaEvaluator
-    private val workbook: Workbook = WorkbookFactory.create(path.toFile())
+
+    private val workbook: Workbook = WorkbookFactory.create(iStream)
 
     init {
         this.evaluator = workbook.creationHelper.createFormulaEvaluator()

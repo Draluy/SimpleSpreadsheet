@@ -1,19 +1,18 @@
 package fr.raluy.simplespreadsheet.priv
 
 import fr.raluy.simplespreadsheet.reader.ISSReader
-import java.nio.file.Files
-import java.nio.file.Path
+import java.io.InputStream
 import kotlin.reflect.KClass
 
 
-class CSVReader(val path: Path, var skipHeaders: Boolean) : ISSReader {
+class CSVReader(val iStream: InputStream, var skipHeaders: Boolean) : ISSReader {
 
     companion object {
         const val CSV_ERR_SHEET_PROVIDED = "This is a CSV file, there are no sheets to chose from."
     }
 
     private fun readDataToStream() = sequence {
-        Files.newBufferedReader(path).use { reader ->
+        iStream.bufferedReader(Charsets.UTF_8).use { reader ->
             com.opencsv.CSVReader(reader).use { csvReader ->
                 var line: Array<String?>?
                 while (csvReader.readNext().also { line = it } != null) {

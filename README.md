@@ -33,21 +33,25 @@ implementation("fr.raluy.simplespreadsheet:simplespreadsheet:1.0.0")
 
 The API has one reader to call. You can get arrays of values, a list of lists, or a list of objects. Whatever the method you call, you will get Strings, one for each cell.
 
+**You can read input streams, byte arrays, or a path**. For brievity, we use paths below. 
+
+> **Warning:** The filename can be provided or omitted, but can lead to bad file type  detection if you dont provide it with a byte array or input stream.
+
 #### Read as an array
 ```
-val array = SSReader(path).readToArray()
+val array = SSReader(path, fileName).readToArray()
 ```
 Where **array** is an array of arrays of the values in the file as strings
 
 #### Read as a list
 ```
-val collection = SSReader(path).readToCollection()
+val collection = SSReader(path, fileName).readToCollection()
 ```
 Where **collection** is a list of lists, containing the values in the file as strings
 
 #### Read as objects
 ```
-val objects = SSReader(path).readToObjects(GenericLine::class)
+val objects = SSReader(path, fileName).readToObjects(GenericLine::class)
 ```
 Where **objects** is a list of objects instanciated (here instances of GenericLine). You can pass any class you like, as long as:
 - The object has a constructor accepting strings as parameters. The first column of the file will go in the first parameter, etc. Order is important.
@@ -59,12 +63,12 @@ Where **objects** is a list of objects instanciated (here instances of GenericLi
 
 #### Read skipping headers (skips the first line)
 ```
-val collection = SSReader(path).skipHeaders().readToCollection()
+val collection = SSReader(path, fileName).skipHeaders().readToCollection()
 ```
 
 #### Read a particular sheet
 ```
-val collection = SSReader(path).readToCollection("SheetName")
+val collection = SSReader(path, fileName).readToCollection("SheetName")
 ```
 
 If the sheet does not exist, it will fail. 
